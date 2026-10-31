@@ -1,0 +1,25 @@
+name: Attach verified Snake 3D package name
+on:
+  push:
+    paths:
+      - .github/workflows/attach-win-unpacked-v116.yml
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  attach:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download and verify
+        env:
+          BASE_URL: https://7x7live.pro/codex-release-upload-20261101
+        run: |
+          set -euo pipefail
+          curl --fail --location --silent --show-error --retry 3 "$BASE_URL/snake3d-win-unpacked-v1.1.6.zip" -o win-unpacked.zip
+          echo '3995ac7e9514029df59cd7f25427f87f6de47cd5b171a375d3cffbc8eb41ca88  win-unpacked.zip' | sha256sum --check --status
+          test "$(stat -c%s win-unpacked.zip)" -eq 160313379
+      - name: Attach expected launcher asset name
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+        run: gh release upload v1.1.6 win-unpacked.zip --repo "$GH_REPO"
