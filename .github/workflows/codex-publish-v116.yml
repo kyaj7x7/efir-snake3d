@@ -1,0 +1,30 @@
+name: Temporary local Snake 3D release publisher
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/codex-publish-v116.yml
+permissions:
+  contents: write
+jobs:
+  publish:
+    if: startsWith(github.event.head_commit.message, 'Codex: publish local Snake 3D v1.1.6')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download and verify local package
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl --fail --location --retry 3 --max-time 1200 'https://7x7live.pro/codex-release-upload-20261101/snake3d-win-unpacked-v1.1.6.zip' -o package.zip
+          echo '3995ac7e9514029df59cd7f25427f87f6de47cd5b171a375d3cffbc8eb41ca88  package.zip' | sha256sum -c -
+          test "$(stat -c%s package.zip)" -eq 160313379
+          unzip -tq package.zip
+          unzip -Z1 package.zip | grep -Fx 'resources/app.asar' >/dev/null
+          unzip -Z1 package.zip | grep -Fx 'Snake 3D.exe' >/dev/null
+      - name: Create release and upload package
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh api "repos/${GITHUB_REPOSITORY}/releases" --method POST -f tag_name=v1.1.6 -f name='Snake 3D v1.1.6' -f body='Fixes the launch-ticket public key to match the current 7x7Live launcher. Authorization and signed ticket validation remain enabled.' -f draft=false -f prerelease=false -f make_latest=true
+          gh release upload v1.1.6 package.zip#win-unpacked.zip --repo "${GITHUB_REPOSITORY}"
